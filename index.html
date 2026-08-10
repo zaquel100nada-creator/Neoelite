@@ -432,7 +432,7 @@
                             <form onsubmit="setInitialProfit(event)" style="margin-bottom: 12px;">
                                 <div class="input-group">
                                     <label>1. Definir Lucro Inicial</label>
-                                    <input type="number" step="0.01" id="apInputLucroInicial" placeholder="Ex: 10.00" required>
+                                    <input type="text" inputmode="decimal" id="apInputLucroInicial" placeholder="Ex: 10.00 ou -5" required>
                                 </div>
                                 <button type="submit" class="btn" style="width: 100%;">Definir Inicial</button>
                             </form>
@@ -441,7 +441,7 @@
                             <form onsubmit="setBonusAP(event)" style="margin-bottom: 12px;">
                                 <div class="input-group">
                                     <label>2. Definir Bônus do AP</label>
-                                    <input type="number" step="0.01" id="apInputBonus" placeholder="Ex: 5.00" required>
+                                    <input type="text" inputmode="decimal" id="apInputBonus" placeholder="Ex: 5.00" required>
                                 </div>
                                 <button type="submit" class="btn" style="width: 100%;">Atualizar Bônus AP</button>
                             </form>
@@ -450,7 +450,7 @@
                             <form onsubmit="addCurrentProfit(event)" style="margin-bottom: 12px;">
                                 <div class="input-group">
                                     <label>3. Lucro/Prejuízo da Partida AP</label>
-                                    <input type="number" step="0.01" id="apInputLucroPartida" placeholder="Ex: 5 ou -2" required>
+                                    <input type="text" inputmode="decimal" id="apInputLucroPartida" placeholder="Ex: 5 ou -2" required>
                                 </div>
                                 <button type="submit" class="btn btn-success" style="width: 100%;">Adicionar Partida</button>
                             </form>
@@ -1024,11 +1024,12 @@
             }
         }
 
-        /* Funções AP NEO (Lucro Inicial, Bônus, Decorrente e Desfazer) */
+        /* Funções AP NEO com suporte a números negativos */
         function setInitialProfit(e) {
             e.preventDefault();
             if (!isAdmin) return;
-            const inicial = parseFloat(document.getElementById('apInputLucroInicial').value);
+            const valStr = document.getElementById('apInputLucroInicial').value.replace(',', '.');
+            const inicial = parseFloat(valStr);
 
             db.ref('apData/lucroInicial').set(inicial).then(() => {
                 showToast("Lucro Inicial definido com sucesso!");
@@ -1039,7 +1040,8 @@
         function setBonusAP(e) {
             e.preventDefault();
             if (!isAdmin) return;
-            const bonus = parseFloat(document.getElementById('apInputBonus').value);
+            const valStr = document.getElementById('apInputBonus').value.replace(',', '.');
+            const bonus = parseFloat(valStr);
 
             db.ref('apData/bonusAP').set(bonus).then(() => {
                 showToast("Bônus do AP atualizado com sucesso!");
@@ -1050,7 +1052,14 @@
         function addCurrentProfit(e) {
             e.preventDefault();
             if (!isAdmin) return;
-            const valorPartida = parseFloat(document.getElementById('apInputLucroPartida').value);
+            const valStr = document.getElementById('apInputLucroPartida').value.replace(',', '.');
+            const valorPartida = parseFloat(valStr);
+            
+            if (isNaN(valorPartida)) {
+                showToast("Digite um valor válido.");
+                return;
+            }
+
             const atualDecorrente = appState.apData.lucroDecorrente || 0;
             const novoDecorrente = atualDecorrente + valorPartida;
 
@@ -1148,10 +1157,10 @@
             const meta = ap.metaLucro || 500;
             let percent = (totalAtual / meta) * 100;
             if (percent > 100) percent = 100;
-            if (percent < 0) percent = 0;
+            if (percent < -100) percent = -100;
 
             const bar = document.getElementById('apGoalProgressBar');
-            bar.style.width = `${percent}%`;
+            bar.style.width = `${Math.max(0, percent)}%`;
             bar.textContent = `${Math.floor(percent)}%`;
 
             document.getElementById('apGoalCurrent').textContent = `R$ ${totalAtual.toFixed(0)}`;
