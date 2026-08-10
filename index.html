@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO ELITE | Estatísticas Free Fire & AP</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+
+    <!-- CDNs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark-overlay: rgba(8, 2, 15, 0.90);
+            --glass-bg: rgba(15, 5, 25, 0.75);
+            --purple-dark: #2a0b4d;
+            --purple-neon: #7b2cbf;
+            --purple-vibrant: #9d4edd;
+            --purple-lavender: #d0b3f0;
+            --text-main: #ffffff;
+            --text-sec: #dcdcdc;
+            --border-glow: rgba(123, 44, 191, 0.35);
+            --mvp-gold: #ffd700;
+            --danger: #ff4444;
+            --success: #00ff88;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            background-color: #05010a;
+            background-image: linear-gradient(var(--bg-dark-overlay), var(--bg-dark-overlay)), 
+                              radial-gradient(circle at center, rgba(123, 44, 191, 0.25) 0%, rgba(5, 1, 10, 0.95) 80%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        body[data-admin="false"] .admin-only {
+            display: none !important;
+        }
+
+        .neo-title-style {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(to bottom, #ffffff 45%, var(--purple-lavender) 55%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 12px rgba(123, 44, 191, 0.8));
+        }
+
+        .neon-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--text-main);
+            text-shadow: 0 0 5px var(--purple-neon), 0 0 15px var(--purple-vibrant);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .brand-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .main-logo {
+            width: 48px; height: 48px; object-fit: cover; border-radius: 12px;
+            border: 2px solid var(--purple-neon);
+            box-shadow: 0 0 15px var(--purple-neon), inset 0 0 10px rgba(0,0,0,0.8);
+            transition: transform 0.3s ease;
+        }
+        .main-logo:hover { transform: scale(1.05); box-shadow: 0 0 25px var(--purple-vibrant); }
+        .brand-header h1 { font-size: 1.4rem; margin: 0; white-space: nowrap; }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(5, 1, 10, 0.9); }
+        ::-webkit-scrollbar-thumb { background: var(--purple-dark); border-radius: 4px; border: 1px solid var(--purple-neon); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--purple-vibrant); }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 12px; }
+
+        header {
+            display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 20px; gap: 12px; background: linear-gradient(90deg, rgba(15, 5, 25, 0.8), transparent);
+            padding: 12px 16px; border-radius: 16px; border-left: 4px solid var(--purple-neon);
+        }
+
+        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
+
+        .nav-tabs {
+            display: flex; gap: 10px; margin-bottom: 20px; background: rgba(15, 5, 25, 0.5);
+            padding: 8px; border-radius: 12px; border: 1px solid var(--border-glow);
+        }
+        .tab-btn {
+            background: transparent; border: 1px solid var(--purple-dark); color: var(--text-sec);
+            padding: 8px 16px; border-radius: 8px; font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase;
+        }
+        .tab-btn.active {
+            background: linear-gradient(45deg, var(--purple-dark), var(--purple-neon));
+            color: white; border-color: var(--purple-vibrant); box-shadow: 0 0 12px rgba(123, 44, 191, 0.5);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .grid-layout { display: grid; grid-template-columns: 1fr; gap: 16px; }
+
+        .btn {
+            background: linear-gradient(45deg, var(--purple-dark), var(--purple-neon));
+            color: white; border: 1px solid var(--purple-vibrant); border-radius: 8px;
+            padding: 8px 14px; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease; text-transform: uppercase; font-size: 0.75rem;
+            font-family: 'Orbitron', sans-serif; text-shadow: 0 0 5px rgba(0,0,0,0.8);
+            letter-spacing: 1px; white-space: nowrap;
+        }
+        .btn:hover {
+            box-shadow: 0 0 15px var(--purple-neon); transform: translateY(-2px);
+            background: linear-gradient(45deg, var(--purple-neon), var(--purple-vibrant));
+        }
+        .btn-danger { background: linear-gradient(45deg, #4a0000, #900000); border-color: var(--danger); }
+        .btn-danger:hover { box-shadow: 0 0 15px var(--danger); }
+        .btn-success { background: linear-gradient(45deg, #004a25, #009040); border-color: var(--success); }
+        .btn-success:hover { box-shadow: 0 0 15px var(--success); }
+        .btn-small { padding: 6px 10px; font-size: 0.7rem; }
+
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; margin-bottom: 4px; font-size: 0.8rem; color: var(--purple-lavender); font-weight: 600;}
+        input, select {
+            width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.6);
+            border: 1px solid var(--purple-dark); border-radius: 8px; color: white;
+            outline: none; transition: all 0.3s; font-family: 'Inter', sans-serif; font-size: 16px;
+        }
+        input:focus, select:focus {
+            border-color: var(--purple-neon); box-shadow: 0 0 12px rgba(123, 44, 191, 0.5);
+            background: rgba(15, 5, 25, 0.8);
+        }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-card {
+            background: rgba(5, 1, 10, 0.7); border: 1px solid var(--purple-dark);
+            border-radius: 12px; padding: 12px 8px; text-align: center; position: relative; overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        .stat-card::after {
+            content: ''; position: absolute; bottom: 0; left: 0; height: 3px;
+            background: var(--purple-neon); width: var(--progress, 0%);
+            transition: width 1s ease-in-out; box-shadow: 0 0 10px var(--purple-neon);
+        }
+        .stat-value { font-family: 'Orbitron', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--purple-lavender); text-shadow: 0 0 8px var(--purple-neon);}
+        .stat-label { font-size: 0.65rem; color: var(--text-sec); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;}
+
+        .table-responsive { overflow-x: auto; margin-top: 16px; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; min-width: 650px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--purple-dark); font-size: 0.82rem; }
+        th { font-family: 'Orbitron', sans-serif; font-size: 0.72rem; color: var(--purple-lavender); cursor: pointer; user-select: none; transition: all 0.2s; text-transform: uppercase; }
+        th:hover { color: white; text-shadow: 0 0 8px var(--purple-neon); }
+        tr:hover td { background: rgba(123, 44, 191, 0.1); }
+        
+        .player-cell-content { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .mvp-row td { background: rgba(255, 215, 0, 0.05); border-bottom: 1px solid var(--mvp-gold); color: var(--mvp-gold); }
+
+        .role-badge {
+            display: inline-block; background: rgba(123, 44, 191, 0.2); border: 1px solid var(--purple-neon);
+            padding: 3px 6px; border-radius: 6px; font-size: 0.6rem; font-weight: bold; letter-spacing: 1px;
+            color: var(--purple-lavender); text-shadow: 0 0 3px rgba(0,0,0,0.8);
+        }
+
+        .mvp-badge { 
+            background: linear-gradient(45deg, var(--mvp-gold), #ff8c00); color: black; padding: 2px 6px;
+            border-radius: 4px; font-size: 0.55rem; font-weight: 900; box-shadow: 0 0 6px var(--mvp-gold);
+            text-shadow: none; letter-spacing: 0.5px; display: inline-flex; align-items: center; white-space: nowrap;
+        }
+
+        .goal-container { margin-bottom: 20px; }
+        .goal-bar-bg { background: rgba(0,0,0,0.7); border-radius: 20px; height: 20px; width: 100%; border: 1px solid var(--purple-dark); overflow: hidden; position: relative;}
+        .goal-bar-fill { 
+            background: linear-gradient(90deg, var(--purple-dark), var(--purple-neon), var(--purple-vibrant));
+            height: 100%; width: 0%; transition: width 1s ease; display: flex; align-items: center;
+            justify-content: flex-end; padding-right: 8px; font-size: 0.65rem; font-weight: bold; text-shadow: 0 0 3px black;
+        }
+
+        .chart-container { position: relative; height: 230px; width: 100%; margin-top: 16px; }
+
+        #toast-container { position: fixed; bottom: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: 90vw; }
+        .toast {
+            background: rgba(15, 5, 25, 0.95); backdrop-filter: blur(10px); border-left: 4px solid var(--purple-neon);
+            padding: 12px 18px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+            animation: slideIn 0.4s ease-out forwards, slideOut 0.4s ease-in 3.6s forwards;
+            font-weight: 600; color: var(--purple-lavender); border-right: 1px solid var(--purple-dark);
+            border-top: 1px solid var(--purple-dark); border-bottom: 1px solid var(--purple-dark); font-size: 0.85rem;
+        }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 1, 10, 0.9); backdrop-filter: blur(8px); z-index: 10000;
+            justify-content: center; align-items: center; padding: 16px;
+        }
+        .modal-content { max-width: 400px; width: 100%; text-align: center; border: 1px solid var(--purple-neon); }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+        .hidden { display: none !important; }
+
+        @media (min-width: 768px) {
+            .container { padding: 20px; }
+            header { flex-direction: row; align-items: center; padding: 15px 25px; gap: 20px; }
+            .brand-header h1 { font-size: 2rem; }
+            .main-logo { width: 60px; height: 60px; }
+            .grid-layout { grid-template-columns: 280px 1fr; gap: 24px; }
+            .stats-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; }
+            .stat-value { font-size: 1.6rem; }
+            .stat-label { font-size: 0.75rem; }
+            .chart-container { height: 280px; }
+            th, td { padding: 12px 16px; font-size: 0.88rem; }
+            th { font-size: 0.8rem; }
+            .glass-panel { padding: 22px; }
+        }
+    </style>
+</head>
+<body data-admin="false">
+
+    <div class="container">
+        <header>
+            <div class="brand-header">
+                <img src="https://i.imgur.com/pGVJwj4.jpg" alt="Logo Neo Elite" class="main-logo" id="teamLogo">
+                <h1 class="neo-title-style">NEO ELITE</h1>
+            </div>
+
+            <div class="header-actions">
+                <span style="font-size: 0.8rem; color: var(--purple-lavender); font-weight: 600;">Temporada:</span>
+                <select id="seasonSelector" class="btn-small" style="width: auto; margin-right: 10px;" onchange="changeLocalSeason()"></select>
+
+                <button class="btn btn-small admin-only" onclick="openModal('seasonModal')">Nova Temp.</button>
+                <button class="btn btn-small admin-only" onclick="exportData()">Exportar</button>
+                <button class="btn btn-small admin-only" onclick="document.getElementById('importFile').click()">Importar</button>
+                <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+                <button class="btn btn-small btn-danger admin-only" onclick="openModal('resetModal')">Reset</button>
+
+                <button id="adminBtn" class="btn btn-small" style="margin-left: 10px;" onclick="toggleAdmin()">🔒 Login Admin</button>
+            </div>
+        </header>
+
+        <!-- Menu de Abas -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('squad')">⚔️ Estatísticas Squad</button>
+            <button class="tab-btn" onclick="switchTab('apneo')">💎 AP NEO (Apostas)</button>
+        </div>
+
+        <!-- ABA 1: SQUAD FREE FIRE -->
+        <div id="tab-squad" class="tab-content active">
+            <div class="grid-layout">
+                <aside>
+                    <div class="glass-panel" style="margin-bottom: 24px;">
+                        <h3 class="neon-title" style="font-size: 1.1rem; margin-bottom: 12px;">Membros</h3>
+                        <div class="input-group">
+                            <select id="playerSelector" onchange="selectPlayer()">
+                                <option value="">Selecione um jogador...</option>
+                            </select>
+                        </div>
+
+                        <div class="admin-only">
+                            <hr style="border-color: var(--purple-dark); margin: 15px 0;">
+                            <form onsubmit="addPlayer(event)">
+                                <div class="input-group">
+                                    <label>Nome do Recruta</label>
+                                    <input type="text" id="newPlayerName" placeholder="Ex: Nobru" required autocomplete="off">
+                                </div>
+                                <div class="input-group">
+                                    <label>Função Tática Fixa</label>
+                                    <select id="newPlayerRole" required>
+                                        <option value="1° RUSH">⚔️ 1° RUSH</option>
+                                        <option value="2° RUSH">⚔️ 2° RUSH</option>
+                                        <option value="3° RUSH">⚔️ 3° RUSH</option>
+                                        <option value="GRANADEIRO">💣 GRANADEIRO</option>
+                                        <option value="SUPORTE">🛡️ SUPORTE</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn" style="width: 100%;">Registrar Jogador</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel">
+                        <h3 class="neon-title" style="font-size: 1.1rem; margin-bottom: 12px;">Meta do Squad (Kills)</h3>
+                        <div class="goal-container">
+                            <div class="goal-bar-bg">
+                                <div id="goalProgressBar" class="goal-bar-fill">0%</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.75rem; color: var(--purple-lavender); font-weight: bold;">
+                                <span id="goalCurrentKills">0</span>
+                                <span id="goalTargetKills">1000</span>
+                            </div>
+                        </div>
+                        <div class="input-group admin-only" style="display: flex; gap: 8px;">
+                            <input type="number" id="newGoalInput" placeholder="Nova Meta" min="1">
+                            <button class="btn btn-small" onclick="updateSquadGoal()">Definir</button>
+                        </div>
+                    </div>
+                </aside>
+
+                <main>
+                    <div id="playerDashboard" class="hidden">
+                        <div class="glass-panel" style="margin-bottom: 24px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                                <h2 class="neo-title-style" id="dashPlayerName" style="margin: 0; font-size: 1.6rem;">NOME</h2>
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <span id="dashPlayerRole" class="role-badge" style="font-size: 0.85rem; padding: 5px 10px;">FUNÇÃO</span>
+                                    <button class="btn btn-small admin-only" onclick="openEditRoleModal()">Editar Função</button>
+                                </div>
+                            </div>
+
+                            <div class="stats-grid" id="playerStatsCards"></div>
+
+                            <div class="admin-only">
+                                <hr style="border-color: var(--purple-dark); margin: 16px 0;">
+                                <h3 class="neon-title" style="font-size: 0.95rem; margin-bottom: 12px;">Registrar Operação (Rodada)</h3>
+                                <form id="addRoundForm" onsubmit="addRound(event)">
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px;">
+                                        <div class="input-group">
+                                            <label>Kills</label>
+                                            <input type="number" id="rKills" min="0" required>
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Assistências</label>
+                                            <input type="number" id="rAssists" min="0" required>
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Dano</label>
+                                            <input type="number" id="rDamage" min="0" required>
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Partidas</label>
+                                            <input type="number" id="rMatches" min="1" required>
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Booyah (Vitórias)</label>
+                                            <input type="number" id="rWins" min="0" required>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success" style="width: 100%; margin-top: 8px;">Salvar Relatório Definitivo</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel" style="margin-bottom: 24px;">
+                            <h3 class="neon-title" style="font-size: 1rem;">Evolução de Kills (Últimas 10 Rodadas)</h3>
+                            <div class="chart-container">
+                                <canvas id="evolutionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                            <h2 class="neon-title" style="font-size: 1.2rem;">Ranking do Squad</h2>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                <input type="text" id="searchRank" placeholder="Buscar jogador..." style="width: 170px;" onkeyup="renderRanking()">
+                                <select id="sortSelector" style="width: 160px;" onchange="changeSortFromSelect()">
+                                    <option value="kd">Ordenar: K/D</option>
+                                    <option value="kills">Ordenar: Kills</option>
+                                    <option value="damage">Ordenar: Dano</option>
+                                    <option value="assists">Ordenar: Assist.</option>
+                                    <option value="avgDmg">Ordenar: Dano/Part</option>
+                                    <option value="winRate">Ordenar: Win %</option>
+                                    <option value="name">Ordenar: Nome</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="rankingTable">
+                                <thead>
+                                    <tr>
+                                        <th onclick="handleSort('name')">Operador ↕</th>
+                                        <th onclick="handleSort('role')">Função ↕</th>
+                                        <th onclick="handleSort('kd')">K/D ↕</th>
+                                        <th onclick="handleSort('kills')">Kills ↕</th>
+                                        <th onclick="handleSort('assists')">Assist. ↕</th>
+                                        <th onclick="handleSort('damage')">Dano ↕</th>
+                                        <th onclick="handleSort('avgDmg')">Dano/Part ↕</th>
+                                        <th onclick="handleSort('winRate')">Win % ↕</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rankingBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- ABA 2: AP NEO (Apostas, Lucros e Bônus) -->
+        <div id="tab-apneo" class="tab-content">
+            <div class="grid-layout">
+                <aside>
+                    <div class="glass-panel" style="margin-bottom: 24px;">
+                        <h3 class="neon-title" style="font-size: 1.1rem; margin-bottom: 12px;">Gestão AP (Hoje)</h3>
+                        <div class="stat-card" style="margin-bottom: 12px;">
+                            <div class="stat-label">Lucro Inicial do Dia</div>
+                            <div class="stat-value" id="apLucroInicialVal" style="color: var(--purple-lavender);">R$ 0,00</div>
+                        </div>
+                        <div class="stat-card" style="margin-bottom: 12px;">
+                            <div class="stat-label">Bônus AP Atual</div>
+                            <div class="stat-value" id="apBonusVal" style="color: var(--purple-vibrant);">R$ 0,00</div>
+                        </div>
+                        <div class="stat-card" style="margin-bottom: 12px;">
+                            <div class="stat-label">Lucro Atual Decorrente</div>
+                            <div class="stat-value" id="apLucroAtualVal" style="color: var(--success);">R$ 0,00</div>
+                        </div>
+
+                        <div class="admin-only">
+                            <hr style="border-color: var(--purple-dark); margin: 14px 0;">
+                            
+                            <!-- 1. Definir Lucro Inicial -->
+                            <form onsubmit="setInitialProfit(event)" style="margin-bottom: 12px;">
+                                <div class="input-group">
+                                    <label>1. Definir Lucro Inicial</label>
+                                    <input type="number" step="0.01" id="apInputLucroInicial" placeholder="Ex: 10.00" required>
+                                </div>
+                                <button type="submit" class="btn" style="width: 100%;">Definir Inicial</button>
+                            </form>
+
+                            <!-- 2. Definir Bônus AP -->
+                            <form onsubmit="setBonusAP(event)" style="margin-bottom: 12px;">
+                                <div class="input-group">
+                                    <label>2. Definir Bônus do AP</label>
+                                    <input type="number" step="0.01" id="apInputBonus" placeholder="Ex: 5.00" required>
+                                </div>
+                                <button type="submit" class="btn" style="width: 100%;">Atualizar Bônus AP</button>
+                            </form>
+
+                            <!-- 3. Lucro Decorrente por Partida -->
+                            <form onsubmit="addCurrentProfit(event)" style="margin-bottom: 12px;">
+                                <div class="input-group">
+                                    <label>3. Lucro/Prejuízo da Partida AP</label>
+                                    <input type="number" step="0.01" id="apInputLucroPartida" placeholder="Ex: 5 ou -2" required>
+                                </div>
+                                <button type="submit" class="btn btn-success" style="width: 100%;">Adicionar Partida</button>
+                            </form>
+
+                            <!-- 4. Fechar Lucro Final do Dia -->
+                            <button class="btn btn-danger" style="width: 100%;" onclick="finalizeDayProfit(true)">Fechar Lucro Final do Dia</button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel">
+                        <h3 class="neon-title" style="font-size: 1.1rem; margin-bottom: 12px;">Meta de Lucro AP</h3>
+                        <div class="goal-container">
+                            <div class="goal-bar-bg">
+                                <div id="apGoalProgressBar" class="goal-bar-fill">0%</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.75rem; color: var(--purple-lavender); font-weight: bold;">
+                                <span id="apGoalCurrent">R$ 0</span>
+                                <span id="apGoalTarget">Meta: R$ 500</span>
+                            </div>
+                        </div>
+                        <div class="input-group admin-only" style="display: flex; gap: 8px;">
+                            <input type="number" id="apNewGoalInput" placeholder="Nova Meta R$" min="1">
+                            <button class="btn btn-small" onclick="updateApGoal()">Definir</button>
+                        </div>
+                    </div>
+                </aside>
+
+                <main>
+                    <!-- Calendário de Lucro -->
+                    <div class="glass-panel" style="margin-bottom: 24px;">
+                        <h3 class="neon-title" style="font-size: 1.1rem; margin-bottom: 14px;">📅 Calendário de Lucros (Histórico)</h3>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Lucro Fechado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="calendarBody">
+                                    <tr><td colspan="2" style="text-align: center; color: var(--text-sec);">Nenhum lucro registrado em datas anteriores.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel" style="margin-bottom: 24px;">
+                        <div class="admin-only">
+                            <h3 class="neon-title" style="font-size: 1rem; margin-bottom: 12px;">Registrar Desempenho AP (Membro)</h3>
+                            <form onsubmit="addApMatchRecord(event)">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+                                    <div class="input-group">
+                                        <label>Selecione o Membro</label>
+                                        <select id="apPlayerSelect" required></select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Partidas</label>
+                                        <input type="number" id="apMatches" min="1" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Vitórias (Win)</label>
+                                        <input type="number" id="apWins" min="0" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Kills</label>
+                                        <input type="number" id="apKills" min="0" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn" style="width: 100%; margin-top: 8px;">Lançar Estatística AP</button>
+                            </form>
+                            <hr style="border-color: var(--purple-dark); margin: 16px 0;">
+                        </div>
+                    </div>
+
+                    <div class="glass-panel">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                            <h2 class="neon-title" style="font-size: 1.2rem;">Ranking AP (Kills & Win)</h2>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                <select id="apSortSelector" style="width: 170px;" onchange="renderApRanking()">
+                                    <option value="kills">Ordenar: Kills</option>
+                                    <option value="wins">Ordenar: Vitórias</option>
+                                    <option value="matches">Ordenar: Partidas</option>
+                                    <option value="winRate">Ordenar: Win %</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="apRankingTable">
+                                <thead>
+                                    <tr>
+                                        <th>Operador</th>
+                                        <th>Partidas</th>
+                                        <th>Vitórias (Win)</th>
+                                        <th>Kills</th>
+                                        <th>Win %</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="apRankingBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- Modais -->
+    <div id="seasonModal" class="modal">
+        <div class="glass-panel modal-content">
+            <h3 class="neon-title" style="margin-bottom: 15px;">Nova Temporada</h3>
+            <p style="margin-bottom: 15px; font-size: 0.85rem; color: var(--text-sec);">Criar uma nova temporada iniciará o ranking do zero.</p>
+            <input type="text" id="newSeasonName" placeholder="Ex: Season 2" style="margin-bottom: 15px;">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn" onclick="createSeason()">Criar</button>
+                <button class="btn btn-danger" onclick="closeModal('seasonModal')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editRoleModal" class="modal">
+        <div class="glass-panel modal-content">
+            <h3 class="neon-title" style="margin-bottom: 15px;">Editar Função do Jogador</h3>
+            <div class="input-group">
+                <label>Nova Função Tática</label>
+                <select id="editPlayerRoleSelect">
+                    <option value="1° RUSH">⚔️ 1° RUSH</option>
+                    <option value="2° RUSH">⚔️ 2° RUSH</option>
+                    <option value="3° RUSH">⚔️ 3° RUSH</option>
+                    <option value="GRANADEIRO">💣 GRANADEIRO</option>
+                    <option value="SUPORTE">🛡️ SUPORTE</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+                <button class="btn btn-success" onclick="savePlayerRole()">Salvar</button>
+                <button class="btn btn-danger" onclick="closeModal('editRoleModal')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resetModal" class="modal">
+        <div class="glass-panel modal-content">
+            <h3 class="neon-title" style="margin-bottom: 15px; color: var(--danger);">Área de Risco</h3>
+            <p style="margin-bottom: 15px; font-size: 0.85rem;">Tem certeza que deseja apagar dados? Esta ação exige confirmação.</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn btn-danger" onclick="confirmReset('all')">Apagar TODO o Banco (Reset Completo)</button>
+                <button class="btn" style="background: transparent; border-color: var(--text-sec);" onclick="closeModal('resetModal')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDfcu44HwWkIAvBdWw9HHVxHXMbXSH4WYw",
+            authDomain: "estatisticasneo.firebaseapp.com",
+            databaseURL: "https://estatisticasneo-default-rtdb.firebaseio.com",
+            projectId: "estatisticasneo",
+            storageBucket: "estatisticasneo.firebasestorage.app",
+            messagingSenderId: "387333514761",
+            appId: "1:387333514761:web:2c5ff519f470dde299fad8"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let appState = {
+            players: {},
+            globalSeason: "Season 1",
+            viewingSeason: "Season 1",
+            squadGoal: 1000,
+            seasons: ["Season 1"],
+            apData: {
+                currentDate: "",
+                lucroInicial: 0,
+                bonusAP: 0,
+                lucroDecorrente: 0,
+                metaLucro: 500,
+                calendar: {},
+                records: {}
+            }
+        };
+
+        let currentPlayerId = "";
+        let chartInstance = null;
+        const appLoadTime = Date.now();
+        let knownGames = new Set();
+        let sortState = { column: 'kd', desc: true };
+        let isAdmin = sessionStorage.getItem('neo_admin') === 'true';
+
+        function getTodayDateString() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tabId === 'squad') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-squad').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-apneo').classList.add('active');
+                renderApRanking();
+            }
+        }
+
+        function toggleAdmin() {
+            if (isAdmin) {
+                isAdmin = false;
+                sessionStorage.removeItem('neo_admin');
+                showToast("Modo Visualização Ativado.");
+            } else {
+                const password = prompt("Digite a senha de administrador:");
+                if (password === "pirita456") {
+                    isAdmin = true;
+                    sessionStorage.setItem('neo_admin', 'true');
+                    showToast("Acesso Liberado! 🔓");
+                } else if (password !== null) {
+                    alert("Senha incorreta.");
+                }
+            }
+            updateAdminUI();
+        }
+
+        function updateAdminUI() {
+            document.body.setAttribute('data-admin', isAdmin ? 'true' : 'false');
+            const btn = document.getElementById('adminBtn');
+            if (isAdmin) {
+                btn.innerHTML = '🔓 Sair do Admin';
+                btn.className = 'btn btn-small btn-danger';
+            } else {
+                btn.innerHTML = '🔒 Login Admin';
+                btn.className = 'btn btn-small';
+            }
+        }
+
+        function initApp() {
+            updateAdminUI();
+            db.ref('/').on('value', (snapshot) => {
+                const data = snapshot.val() || {};
+                appState.players = data.players || {};
+                if (data.settings) {
+                    appState.globalSeason = data.settings.currentSeason || "Season 1";
+                    appState.squadGoal = data.settings.squadGoal || 1000;
+                    if(data.settings.seasons) appState.seasons = data.settings.seasons;
+                }
+                if (data.apData) {
+                    appState.apData = data.apData;
+                    if(!appState.apData.calendar) appState.apData.calendar = {};
+                    if(!appState.apData.records) appState.apData.records = {};
+                }
+
+                checkMidnightRollover();
+
+                if (!document.getElementById('seasonSelector').value) {
+                    appState.viewingSeason = appState.globalSeason;
+                }
+                updateSelectors();
+                checkNewGamesAndToast();
+                renderUI();
+            });
+        }
+
+        function checkMidnightRollover() {
+            const today = getTodayDateString();
+            if (!appState.apData.currentDate) {
+                db.ref('apData/currentDate').set(today);
+            } else if (appState.apData.currentDate !== today) {
+                const oldDate = appState.apData.currentDate;
+                const finalProfit = (appState.apData.lucroInicial || 0) + (appState.apData.bonusAP || 0) + (appState.apData.lucroDecorrente || 0);
+                
+                let updates = {};
+                updates[`apData/calendar/${oldDate}`] = finalProfit;
+                updates[`apData/currentDate`] = today;
+                updates[`apData/lucroInicial`] = 0;
+                updates[`apData/bonusAP`] = 0;
+                updates[`apData/lucroDecorrente`] = 0;
+
+                db.ref('/').update(updates);
+            }
+        }
+
+        function renderUI() {
+            renderSquadGoal();
+            renderRanking();
+            renderApFinanceUI();
+            renderCalendarUI();
+            renderApRanking();
+            if (currentPlayerId) renderPlayerDashboard();
+        }
+
+        function updateSelectors() {
+            const playerSel = document.getElementById('playerSelector');
+            const apPlayerSel = document.getElementById('apPlayerSelect');
+            
+            playerSel.innerHTML = '<option value="">Selecione um jogador...</option>';
+            apPlayerSel.innerHTML = '<option value="">Selecione o membro...</option>';
+
+            Object.keys(appState.players).forEach(id => {
+                const p = appState.players[id];
+                
+                const opt1 = document.createElement('option');
+                opt1.value = id;
+                opt1.textContent = p.name;
+                if(id === currentPlayerId) opt1.selected = true;
+                playerSel.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = id;
+                opt2.textContent = p.name;
+                apPlayerSel.appendChild(opt2);
+            });
+
+            const seasonSel = document.getElementById('seasonSelector');
+            seasonSel.innerHTML = '';
+            appState.seasons.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s === appState.globalSeason ? `${s} (Atual)` : s;
+                if(s === appState.viewingSeason) opt.selected = true;
+                seasonSel.appendChild(opt);
+            });
+        }
+
+        function addPlayer(e) {
+            e.preventDefault();
+            if (!isAdmin) return;
+            const nameInput = document.getElementById('newPlayerName');
+            const roleInput = document.getElementById('newPlayerRole');
+            const name = nameInput.value.trim();
+            const role = roleInput.value;
+            if (!name) return;
+
+            db.ref('players').push({ name, role }).then(() => {
+                nameInput.value = '';
+                showToast(`Operador ${name} registrado!`);
+            });
+        }
+
+        function selectPlayer() {
+            currentPlayerId = document.getElementById('playerSelector').value;
+            const dashboard = document.getElementById('playerDashboard');
+            if (currentPlayerId) {
+                dashboard.classList.remove('hidden');
+                document.getElementById('dashPlayerName').textContent = appState.players[currentPlayerId].name;
+                document.getElementById('dashPlayerRole').textContent = appState.players[currentPlayerId].role || 'SEM FUNÇÃO';
+                renderPlayerDashboard();
+            } else {
+                dashboard.classList.add('hidden');
+            }
+        }
+
+        function openEditRoleModal() {
+            if (!isAdmin || !currentPlayerId) return;
+            const currentRole = appState.players[currentPlayerId].role || '1° RUSH';
+            document.getElementById('editPlayerRoleSelect').value = currentRole;
+            openModal('editRoleModal');
+        }
+
+        function savePlayerRole() {
+            if (!isAdmin || !currentPlayerId) return;
+            const newRole = document.getElementById('editPlayerRoleSelect').value;
+            db.ref(`players/${currentPlayerId}/role`).set(newRole).then(() => {
+                closeModal('editRoleModal');
+                showToast("Função tática atualizada com sucesso!");
+            });
+        }
+
+        function calculateStats(playerGames) {
+            let stats = { kills: 0, assists: 0, damage: 0, matches: 0, wins: 0, kd: 0, avgDmg: 0, winRate: 0, rounds: [] };
+            if(!playerGames) return stats;
+
+            const seasonGames = Object.entries(playerGames)
+                .filter(([_, g]) => g.seasonId === appState.viewingSeason)
+                .map(([id, g]) => ({ id, ...g }))
+                .sort((a, b) => a.timestamp - b.timestamp);
+
+            seasonGames.forEach(g => {
+                stats.kills += (g.kills || 0);
+                stats.assists += (g.assists || 0);
+                stats.damage += (g.damage || 0);
+                stats.matches += (g.matches || 0);
+                stats.wins += (g.wins || 0);
+                stats.rounds.push(g);
+            });
+
+            if (stats.matches > 0) {
+                const deaths = Math.max(0, stats.matches - stats.wins);
+                stats.kd = deaths === 0 ? stats.kills : (stats.kills / deaths);
+                stats.avgDmg = stats.damage / stats.matches;
+                stats.winRate = (stats.wins / stats.matches) * 100;
+            }
+            return stats;
+        }
+
+        function renderPlayerDashboard() {
+            if (!currentPlayerId || !appState.players[currentPlayerId]) return;
+            const stats = calculateStats(appState.players[currentPlayerId].games);
+            const cardsContainer = document.getElementById('playerStatsCards');
+
+            cardsContainer.innerHTML = `
+                <div class="stat-card"><div class="stat-label">Kills</div><div class="stat-value">${stats.kills}</div></div>
+                <div class="stat-card"><div class="stat-label">K/D</div><div class="stat-value">${stats.kd.toFixed(2)}</div></div>
+                <div class="stat-card"><div class="stat-label">Dano</div><div class="stat-value">${stats.damage}</div></div>
+                <div class="stat-card"><div class="stat-label">Win %</div><div class="stat-value">${stats.winRate.toFixed(1)}%</div></div>
+                <div class="stat-card"><div class="stat-label">Dano Médio</div><div class="stat-value">${Math.round(stats.avgDmg)}</div></div>
+                <div class="stat-card"><div class="stat-label">Partidas</div><div class="stat-value">${stats.matches} (${stats.wins}W)</div></div>
+            `;
+            updateChart(stats.rounds);
+        }
+
+        function addRound(e) {
+            e.preventDefault();
+            if (!currentPlayerId || !isAdmin) return;
+
+            const kills = parseInt(document.getElementById('rKills').value);
+            const assists = parseInt(document.getElementById('rAssists').value);
+            const damage = parseInt(document.getElementById('rDamage').value);
+            const matches = parseInt(document.getElementById('rMatches').value);
+            const wins = parseInt(document.getElementById('rWins').value);
+
+            db.ref(`players/${currentPlayerId}/games`).push({
+                kills, assists, damage, matches, wins,
+                seasonId: appState.globalSeason,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                document.getElementById('addRoundForm').reset();
+                showToast("Rodada registrada com sucesso!");
+            });
+        }
+
+        function updateChart(rounds) {
+            const ctx = document.getElementById('evolutionChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            const last10 = rounds.slice(-10);
+            const labels = last10.map((_, i) => `Rnd ${i+1}`);
+            const data = last10.map(r => r.kills);
+
+            let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(157, 78, 221, 0.5)');
+            gradient.addColorStop(1, 'rgba(42, 11, 77, 0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Kills', data: data, borderColor: '#9d4edd', backgroundColor: gradient,
+                        borderWidth: 3, pointBackgroundColor: '#ffffff', pointBorderColor: '#7b2cbf', fill: true, tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(208, 179, 240, 0.1)' }, ticks: { color: '#d0b3f0' } },
+                        x: { grid: { color: 'rgba(208, 179, 240, 0.1)' }, ticks: { color: '#d0b3f0' } }
+                    }
+                }
+            });
+        }
+
+        function handleSort(column) {
+            if (sortState.column === column) {
+                sortState.desc = !sortState.desc;
+            } else {
+                sortState.column = column;
+                sortState.desc = true;
+            }
+            const sel = document.getElementById('sortSelector');
+            if (sel) sel.value = sortState.column;
+            renderRanking();
+        }
+
+        function changeSortFromSelect() {
+            const val = document.getElementById('sortSelector').value;
+            sortState.column = val;
+            sortState.desc = true;
+            renderRanking();
+        }
+
+        function renderRanking() {
+            const searchTerm = (document.getElementById('searchRank').value || "").toLowerCase();
+            let rankData = [];
+
+            Object.entries(appState.players).forEach(([id, p]) => {
+                const stats = calculateStats(p.games);
+                if (stats.matches > 0) {
+                    rankData.push({ id, name: p.name, role: p.role, ...stats });
+                }
+            });
+
+            if (searchTerm) {
+                rankData = rankData.filter(p => p.name.toLowerCase().includes(searchTerm));
+            }
+
+            rankData.sort((a, b) => {
+                let valA = a[sortState.column] || "";
+                let valB = b[sortState.column] || "";
+                if (valA === valB) { valA = a.kills; valB = b.kills; }
+                if (typeof valA === 'string') return sortState.desc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+                return sortState.desc ? valB - valA : valA - valB;
+            });
+
+            const tbody = document.getElementById('rankingBody');
+            tbody.innerHTML = '';
+
+            rankData.forEach((p, index) => {
+                const isTop = index === 0 && sortState.desc && !searchTerm && rankData.length > 0 && sortState.column !== 'name';
+                const tr = document.createElement('tr');
+                if(isTop) tr.className = 'mvp-row';
+
+                let badgeHTML = '';
+                if (isTop) {
+                    if (sortState.column === 'kd') badgeHTML = '<span class="mvp-badge">👑 MVP K/D</span>';
+                    else if (sortState.column === 'damage') badgeHTML = '<span class="mvp-badge" style="background: linear-gradient(45deg, #ff4444, #ff8c00); color: white;">👑 MVP Dano</span>';
+                    else if (sortState.column === 'kills') badgeHTML = '<span class="mvp-badge" style="background: linear-gradient(45deg, #9d4edd, #7b2cbf); color: white;">👑 MVP Kills</span>';
+                    else if (sortState.column === 'assists') badgeHTML = '<span class="mvp-badge" style="background: linear-gradient(45deg, #00ff88, #009040); color: black;">👑 MVP Assist</span>';
+                    else if (sortState.column === 'avgDmg') badgeHTML = '<span class="mvp-badge" style="background: linear-gradient(45deg, #00d2ff, #3a7bd5); color: white;">👑 MVP Dano/P</span>';
+                    else if (sortState.column === 'winRate') badgeHTML = '<span class="mvp-badge" style="background: linear-gradient(45deg, #f7b733, #fc4a1a); color: white;">👑 MVP Win%</span>';
+                }
+
+                tr.innerHTML = `
+                    <td><div class="player-cell-content"><span style="font-weight: 800; font-family: 'Orbitron', sans-serif;">${p.name}</span>${badgeHTML}</div></td>
+                    <td><span class="role-badge">${p.role || 'SEM FUNÇÃO'}</span></td>
+                    <td style="color: var(--purple-lavender); font-weight: bold;">${p.kd.toFixed(2)}</td>
+                    <td>${p.kills}</td><td>${p.assists}</td><td>${p.damage}</td><td>${Math.round(p.avgDmg)}</td><td>${p.winRate.toFixed(1)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderSquadGoal() {
+            let totalKills = 0;
+            Object.values(appState.players).forEach(p => {
+                const stats = calculateStats(p.games);
+                totalKills += stats.kills;
+            });
+
+            const target = appState.squadGoal;
+            let percent = (totalKills / target) * 100;
+            if (percent > 100) percent = 100;
+
+            const bar = document.getElementById('goalProgressBar');
+            bar.style.width = `${percent}%`;
+            bar.textContent = `${Math.floor(percent)}%`;
+
+            document.getElementById('goalCurrentKills').textContent = `${totalKills} Kills`;
+            document.getElementById('goalTargetKills').textContent = `Meta: ${target}`;
+        }
+
+        function updateSquadGoal() {
+            if (!isAdmin) return;
+            const val = parseInt(document.getElementById('newGoalInput').value);
+            if (val > 0) {
+                db.ref('settings/squadGoal').set(val);
+                document.getElementById('newGoalInput').value = '';
+                showToast("Meta do Squad atualizada!");
+            }
+        }
+
+        /* Funções AP NEO (Lucro Inicial, Bônus e Decorrente) */
+        function setInitialProfit(e) {
+            e.preventDefault();
+            if (!isAdmin) return;
+            const inicial = parseFloat(document.getElementById('apInputLucroInicial').value);
+
+            db.ref('apData/lucroInicial').set(inicial).then(() => {
+                showToast("Lucro Inicial definido com sucesso!");
+                document.getElementById('apInputLucroInicial').value = '';
+            });
+        }
+
+        function setBonusAP(e) {
+            e.preventDefault();
+            if (!isAdmin) return;
+            const bonus = parseFloat(document.getElementById('apInputBonus').value);
+
+            db.ref('apData/bonusAP').set(bonus).then(() => {
+                showToast("Bônus do AP atualizado com sucesso!");
+                document.getElementById('apInputBonus').value = '';
+            });
+        }
+
+        function addCurrentProfit(e) {
+            e.preventDefault();
+            if (!isAdmin) return;
+            const valorPartida = parseFloat(document.getElementById('apInputLucroPartida').value);
+            const atualDecorrente = appState.apData.lucroDecorrente || 0;
+            const novoDecorrente = atualDecorrente + valorPartida;
+
+            db.ref('apData/lucroDecorrente').set(novoDecorrente).then(() => {
+                showToast(`Partida registrada! Decorrente: R$ ${novoDecorrente.toFixed(2)}`);
+                document.getElementById('apInputLucroPartida').value = '';
+            });
+        }
+
+        function finalizeDayProfit(manual = false) {
+            if (!isAdmin) return;
+            if (manual && !confirm("Deseja realmente fechar o lucro final do dia e salvá-lo no calendário?")) return;
+
+            const inicial = appState.apData.lucroInicial || 0;
+            const bonus = appState.apData.bonusAP || 0;
+            const decorrente = appState.apData.lucroDecorrente || 0;
+            const totalFinal = inicial + bonus + decorrente;
+            const currentDate = appState.apData.currentDate || getTodayDateString();
+
+            let updates = {};
+            updates[`apData/calendar/${currentDate}`] = totalFinal;
+            updates[`apData/lucroInicial`] = 0;
+            updates[`apData/bonusAP`] = 0;
+            updates[`apData/lucroDecorrente`] = 0;
+            updates[`apData/currentDate`] = getTodayDateString();
+
+            db.ref('/').update(updates).then(() => {
+                showToast(`Lucro final de R$ ${totalFinal.toFixed(2)} salvo no calendário!`);
+            });
+        }
+
+        function updateApGoal() {
+            if (!isAdmin) return;
+            const val = parseFloat(document.getElementById('apNewGoalInput').value);
+            if (val > 0) {
+                db.ref('apData/metaLucro').set(val);
+                document.getElementById('apNewGoalInput').value = '';
+                showToast("Meta de Lucro AP atualizada!");
+            }
+        }
+
+        function addApMatchRecord(e) {
+            e.preventDefault();
+            if (!isAdmin) return;
+            const playerId = document.getElementById('apPlayerSelect').value;
+            const matches = parseInt(document.getElementById('apMatches').value);
+            const wins = parseInt(document.getElementById('apWins').value);
+            const kills = parseInt(document.getElementById('apKills').value);
+
+            if (!playerId) return;
+
+            db.ref(`apData/records/${playerId}`).push({
+                matches, wins, kills, timestamp: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                showToast("Registro AP salvo com sucesso!");
+                document.getElementById('apMatches').value = '';
+                document.getElementById('apWins').value = '';
+                document.getElementById('apKills').value = '';
+            });
+        }
+
+        function renderApFinanceUI() {
+            const ap = appState.apData || {};
+            const inicial = ap.lucroInicial || 0;
+            const bonus = ap.bonusAP || 0;
+            const decorrente = ap.lucroDecorrente || 0;
+            const totalAtual = inicial + bonus + decorrente;
+
+            document.getElementById('apLucroInicialVal').textContent = `R$ ${inicial.toFixed(2)}`;
+            document.getElementById('apBonusVal').textContent = `R$ ${bonus.toFixed(2)}`;
+            document.getElementById('apLucroAtualVal').textContent = `R$ ${totalAtual.toFixed(2)}`;
+
+            const meta = ap.metaLucro || 500;
+            let percent = (totalAtual / meta) * 100;
+            if (percent > 100) percent = 100;
+            if (percent < 0) percent = 0;
+
+            const bar = document.getElementById('apGoalProgressBar');
+            bar.style.width = `${percent}%`;
+            bar.textContent = `${Math.floor(percent)}%`;
+
+            document.getElementById('apGoalCurrent').textContent = `R$ ${totalAtual.toFixed(0)}`;
+            document.getElementById('apGoalTarget').textContent = `Meta: R$ ${meta}`;
+        }
+
+        function renderCalendarUI() {
+            const calendar = (appState.apData && appState.apData.calendar) ? appState.apData.calendar : {};
+            const tbody = document.getElementById('calendarBody');
+            tbody.innerHTML = '';
+
+            const entries = Object.entries(calendar).sort((a, b) => b[0].localeCompare(a[0]));
+
+            if (entries.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-sec);">Nenhum lucro registrado em datas anteriores.</td></tr>`;
+                return;
+            }
+
+            entries.forEach(([date, profit]) => {
+                const tr = document.createElement('tr');
+                const colorStyle = profit >= 0 ? 'color: var(--success); font-weight: bold;' : 'color: var(--danger); font-weight: bold;';
+                tr.innerHTML = `<td style="font-family: 'Orbitron', sans-serif;">${date}</td><td style="${colorStyle}">R$ ${profit.toFixed(2)}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderApRanking() {
+            renderApFinanceUI();
+            const sortBy = document.getElementById('apSortSelector').value;
+            let rankData = [];
+
+            Object.entries(appState.players).forEach(([id, p]) => {
+                let pKills = 0, pWins = 0, pMatches = 0;
+                const recs = appState.apData.records && appState.apData.records[id] ? appState.apData.records[id] : {};
+                
+                Object.values(recs).forEach(r => {
+                    pKills += (r.kills || 0);
+                    pWins += (r.wins || 0);
+                    pMatches += (r.matches || 0);
+                });
+
+                const winRate = pMatches > 0 ? (pWins / pMatches) * 100 : 0;
+                rankData.push({ id, name: p.name, kills: pKills, wins: pWins, matches: pMatches, winRate });
+            });
+
+            rankData.sort((a, b) => {
+                if (sortBy === 'winRate') return b.winRate - a.winRate;
+                return b[sortBy] - a[sortBy];
+            });
+
+            const tbody = document.getElementById('apRankingBody');
+            tbody.innerHTML = '';
+
+            rankData.forEach((p, index) => {
+                const isTop = index === 0 && rankData.length > 0 && p[sortBy] > 0;
+                const tr = document.createElement('tr');
+                if(isTop) tr.className = 'mvp-row';
+
+                let badgeHTML = isTop ? `<span class="mvp-badge">👑 MVP AP</span>` : '';
+
+                tr.innerHTML = `
+                    <td><div class="player-cell-content"><span style="font-weight: 800; font-family: 'Orbitron', sans-serif;">${p.name}</span>${badgeHTML}</div></td>
+                    <td>${p.matches}</td><td>${p.wins}</td>
+                    <td style="color: var(--purple-lavender); font-weight: bold;">${p.kills}</td>
+                    <td>${p.winRate.toFixed(1)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function changeLocalSeason() {
+            appState.viewingSeason = document.getElementById('seasonSelector').value;
+            renderUI();
+        }
+
+        function createSeason() {
+            if (!isAdmin) return;
+            const name = document.getElementById('newSeasonName').value.trim();
+            if (!name) return;
+            const newSeasons = [...appState.seasons, name];
+            db.ref().update({
+                'settings/seasons': newSeasons,
+                'settings/currentSeason': name
+            }).then(() => {
+                closeModal('seasonModal');
+                document.getElementById('newSeasonName').value = '';
+                showToast(`Temporada ${name} criada!`);
+            });
+        }
+
+        function checkNewGamesAndToast() {
+            Object.entries(appState.players).forEach(([pId, p]) => {
+                if(p.games) {
+                    Object.entries(p.games).forEach(([pushId, g]) => {
+                        if(!knownGames.has(pushId)) {
+                            knownGames.add(pushId);
+                            if (g.timestamp > appLoadTime && g.seasonId === appState.globalSeason) {
+                                showToast(`🔥 ${p.name} adicionou ${g.kills} kills!`);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => { if(toast.parentElement) toast.remove(); }, 4000);
+        }
+
+        function exportData() {
+            if (!isAdmin) return;
+            db.ref('/').once('value').then(snap => {
+                const data = snap.val();
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `neo_elite_backup.json`;
+                a.click();
+            });
+        }
+
+        function importData(e) {
+            if (!isAdmin) return;
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if(!confirm("Os dados atuais serão substituídos. Deseja continuar?")) {
+                e.target.value = ''; return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const json = JSON.parse(event.target.result);
+                    if(json.players || json.settings) {
+                        db.ref('/').set(json).then(() => {
+                            showToast("Banco de dados restaurado com sucesso!");
+                        });
+                    } else { alert("Arquivo JSON inválido."); }
+                } catch (err) { alert("Erro ao ler o arquivo JSON."); }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        function confirmReset(type) {
+            if (!isAdmin) return;
+            if(type === 'all') {
+                const check1 = confirm("AVISO CRÍTICO: Isso apagará TODOS OS JOGADORES, DADOS AP e ESTATÍSTICAS.");
+                if(check1) {
+                    const check2 = confirm("SEGUNDA CONFIRMAÇÃO: Tem certeza absoluta?");
+                    if(check2) {
+                        db.ref('/').remove().then(() => {
+                            db.ref('settings').set({ currentSeason: "Season 1", seasons: ["Season 1"], squadGoal: 1000 });
+                            db.ref('apData').set({ currentDate: getTodayDateString(), lucroInicial: 0, bonusAP: 0, lucroDecorrente: 0, metaLucro: 500, calendar: {}, records: {} });
+                            closeModal('resetModal');
+                            showToast("Sistema completamente resetado.");
+                            currentPlayerId = "";
+                            document.getElementById('playerDashboard').classList.add('hidden');
+                        });
+                    }
+                }
+            }
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        window.onclick = function(event) { if (event.target.className === 'modal') event.target.style.display = "none"; }
+        window.onload = initApp;
+    </script>
+</body>
+</html>
