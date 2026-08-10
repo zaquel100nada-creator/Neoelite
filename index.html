@@ -456,7 +456,10 @@
                             </form>
 
                             <!-- 4. Fechar Lucro Final do Dia -->
-                            <button class="btn btn-danger" style="width: 100%;" onclick="finalizeDayProfit(true)">Fechar Lucro Final do Dia</button>
+                            <button class="btn btn-danger" style="width: 100%; margin-bottom: 8px;" onclick="finalizeDayProfit(true)">Fechar Lucro Final do Dia</button>
+                            
+                            <!-- 5. Desfazer Último Fechamento -->
+                            <button class="btn btn-small btn-danger" style="width: 100%; background: linear-gradient(45deg, #7b2cbf, #4a0048); border-color: var(--purple-vibrant);" onclick="undoFinalizeDay()">🔄 Desfazer Último Fechamento</button>
                         </div>
                     </div>
 
@@ -488,10 +491,11 @@
                                     <tr>
                                         <th>Data</th>
                                         <th>Lucro Fechado</th>
+                                        <th class="admin-only" style="width: 60px; text-align: center;">Ação</th>
                                     </tr>
                                 </thead>
                                 <tbody id="calendarBody">
-                                    <tr><td colspan="2" style="text-align: center; color: var(--text-sec);">Nenhum lucro registrado em datas anteriores.</td></tr>
+                                    <tr><td colspan="3" style="text-align: center; color: var(--text-sec);">Nenhum lucro registrado em datas anteriores.</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -630,7 +634,8 @@
                 lucroDecorrente: 0,
                 metaLucro: 500,
                 calendar: {},
-                records: {}
+                records: {},
+                lastClosedState: null
             }
         };
 
@@ -734,6 +739,7 @@
                 updates[`apData/lucroInicial`] = 0;
                 updates[`apData/bonusAP`] = 0;
                 updates[`apData/lucroDecorrente`] = 0;
+                updates[`apData/lastClosedState`] = null;
 
                 db.ref('/').update(updates);
             }
@@ -1018,7 +1024,7 @@
             }
         }
 
-        /* Funções AP NEO (Lucro Inicial, Bônus e Decorrente) */
+        /* Funções AP NEO (Lucro Inicial, Bônus, Decorrente e Desfazer) */
         function setInitialProfit(e) {
             e.preventDefault();
             if (!isAdmin) return;
@@ -1066,13 +1072,35 @@
 
             let updates = {};
             updates[`apData/calendar/${currentDate}`] = totalFinal;
+            updates[`apData/lastClosedState`] = { inicial, bonus, decorrente, totalFinal, date: currentDate };
             updates[`apData/lucroInicial`] = 0;
             updates[`apData/bonusAP`] = 0;
             updates[`apData/lucroDecorrente`] = 0;
-            updates[`apData/currentDate`] = getTodayDateString();
 
             db.ref('/').update(updates).then(() => {
                 showToast(`Lucro final de R$ ${totalFinal.toFixed(2)} salvo no calendário!`);
+            });
+        }
+
+        function undoFinalizeDay() {
+            if (!isAdmin) return;
+            const lastState = appState.apData.lastClosedState;
+            if (!lastState) {
+                alert("Não há nenhum fechamento recente para desfazer.");
+                return;
+            }
+
+            if (!confirm(`Deseja desfazer o fechamento do dia ${lastState.date} (R$ ${lastState.totalFinal.toFixed(2)}) e restaurar os valores?`)) return;
+
+            let updates = {};
+            updates[`apData/calendar/${lastState.date}`] = null;
+            updates[`apData/lucroInicial`] = lastState.inicial;
+            updates[`apData/bonusAP`] = lastState.bonus;
+            updates[`apData/lucroDecorrente`] = lastState.lucroDecorrente;
+            updates[`apData/lastClosedState`] = null;
+
+            db.ref('/').update(updates).then(() => {
+                showToast("Fechamento desfeito com sucesso! Valores restaurados.");
             });
         }
 
@@ -1138,16 +1166,32 @@
             const entries = Object.entries(calendar).sort((a, b) => b[0].localeCompare(a[0]));
 
             if (entries.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-sec);">Nenhum lucro registrado em datas anteriores.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-sec);">Nenhum lucro registrado em datas anteriores.</td></tr>`;
                 return;
             }
 
             entries.forEach(([date, profit]) => {
                 const tr = document.createElement('tr');
                 const colorStyle = profit >= 0 ? 'color: var(--success); font-weight: bold;' : 'color: var(--danger); font-weight: bold;';
-                tr.innerHTML = `<td style="font-family: 'Orbitron', sans-serif;">${date}</td><td style="${colorStyle}">R$ ${profit.toFixed(2)}</td>`;
+                
+                const deleteBtn = `<button class="btn btn-small btn-danger admin-only" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteCalendarEntry('${date}')">Excluir</button>`;
+
+                tr.innerHTML = `
+                    <td style="font-family: 'Orbitron', sans-serif;">${date}</td>
+                    <td style="${colorStyle}">R$ ${profit.toFixed(2)}</td>
+                    <td class="admin-only" style="text-align: center;">${deleteBtn}</td>
+                `;
                 tbody.appendChild(tr);
             });
+        }
+
+        function deleteCalendarEntry(date) {
+            if (!isAdmin) return;
+            if (confirm(`Deseja excluir o registro do dia ${date} do calendário?`)) {
+                db.ref(`apData/calendar/${date}`).remove().then(() => {
+                    showToast(`Registro de ${date} removido do calendário.`);
+                });
+            }
         }
 
         function renderApRanking() {
@@ -1284,7 +1328,7 @@
                     if(check2) {
                         db.ref('/').remove().then(() => {
                             db.ref('settings').set({ currentSeason: "Season 1", seasons: ["Season 1"], squadGoal: 1000 });
-                            db.ref('apData').set({ currentDate: getTodayDateString(), lucroInicial: 0, bonusAP: 0, lucroDecorrente: 0, metaLucro: 500, calendar: {}, records: {} });
+                            db.ref('apData').set({ currentDate: getTodayDateString(), lucroInicial: 0, bonusAP: 0, lucroDecorrente: 0, metaLucro: 500, calendar: {}, records: {}, lastClosedState: null });
                             closeModal('resetModal');
                             showToast("Sistema completamente resetado.");
                             currentPlayerId = "";
