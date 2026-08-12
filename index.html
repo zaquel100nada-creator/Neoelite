@@ -138,6 +138,8 @@
         .btn-danger:hover { box-shadow: 0 0 15px var(--danger); }
         .btn-success { background: linear-gradient(45deg, #004a25, #009040); border-color: var(--success); }
         .btn-success:hover { box-shadow: 0 0 15px var(--success); }
+        .btn-warning { background: linear-gradient(45deg, #7b5c00, #b08c00); border-color: #ffd700; }
+        .btn-warning:hover { box-shadow: 0 0 15px #ffd700; }
         .btn-small { padding: 6px 10px; font-size: 0.7rem; }
 
         .input-group { margin-bottom: 12px; }
@@ -247,6 +249,9 @@
             <div class="header-actions">
                 <span style="font-size: 0.8rem; color: var(--purple-lavender); font-weight: 600;">Temporada:</span>
                 <select id="seasonSelector" class="btn-small" style="width: auto; margin-right: 10px;" onchange="changeLocalSeason()"></select>
+
+                <!-- Botão Global de Desfazer -->
+                <button class="btn btn-small btn-warning admin-only" id="undoGlobalBtn" onclick="undoGlobalAction()" title="Desfazer última alteração realizada" style="display:none;">↩️ Desfazer Ação</button>
 
                 <button class="btn btn-small admin-only" onclick="openModal('seasonModal')">Nova Temp.</button>
                 <button class="btn btn-small admin-only" onclick="exportData()">Exportar</button>
@@ -432,7 +437,10 @@
                             <form onsubmit="setInitialProfit(event)" style="margin-bottom: 12px;">
                                 <div class="input-group">
                                     <label>1. Definir Lucro Inicial</label>
-                                    <input type="text" inputmode="decimal" id="apInputLucroInicial" placeholder="Ex: 10.00 ou -5" required>
+                                    <div style="display: flex; gap: 6px;">
+                                        <input type="text" inputmode="text" id="apInputLucroInicial" placeholder="Ex: 10.00 ou -5" required style="flex: 1;">
+                                        <button type="button" class="btn btn-small btn-warning" onclick="toggleSign('apInputLucroInicial')" title="Alternar Sinal +/-" style="padding: 0 10px; font-weight: 900;">+/-</button>
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn" style="width: 100%;">Definir Inicial</button>
                             </form>
@@ -441,7 +449,10 @@
                             <form onsubmit="setBonusAP(event)" style="margin-bottom: 12px;">
                                 <div class="input-group">
                                     <label>2. Definir Bônus do AP</label>
-                                    <input type="text" inputmode="decimal" id="apInputBonus" placeholder="Ex: 5.00" required>
+                                    <div style="display: flex; gap: 6px;">
+                                        <input type="text" inputmode="text" id="apInputBonus" placeholder="Ex: 5.00" required style="flex: 1;">
+                                        <button type="button" class="btn btn-small btn-warning" onclick="toggleSign('apInputBonus')" title="Alternar Sinal +/-" style="padding: 0 10px; font-weight: 900;">+/-</button>
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn" style="width: 100%;">Atualizar Bônus AP</button>
                             </form>
@@ -450,7 +461,10 @@
                             <form onsubmit="addCurrentProfit(event)" style="margin-bottom: 12px;">
                                 <div class="input-group">
                                     <label>3. Lucro/Prejuízo da Partida AP</label>
-                                    <input type="text" inputmode="decimal" id="apInputLucroPartida" placeholder="Ex: 5 ou -2" required>
+                                    <div style="display: flex; gap: 6px;">
+                                        <input type="text" inputmode="text" id="apInputLucroPartida" placeholder="Ex: 5 ou -2" required style="flex: 1;">
+                                        <button type="button" class="btn btn-small btn-warning" onclick="toggleSign('apInputLucroPartida')" title="Alternar Sinal +/-" style="padding: 0 10px; font-weight: 900;">+/-</button>
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn btn-success" style="width: 100%;">Adicionar Partida</button>
                             </form>
@@ -646,6 +660,44 @@
         let sortState = { column: 'kd', desc: true };
         let isAdmin = sessionStorage.getItem('neo_admin') === 'true';
 
+        // Sistema de Histórico Global para Desfazer (Undo)
+        let lastActionSnapshot = null;
+
+        function saveActionForUndo(snapshotData) {
+            lastActionSnapshot = JSON.parse(JSON.stringify(snapshotData));
+            const btn = document.getElementById('undoGlobalBtn');
+            if (btn) btn.style.display = 'inline-block';
+        }
+
+        function undoGlobalAction() {
+            if (!isAdmin || !lastActionSnapshot) {
+                showToast("Nenhuma ação recente para desfazer.");
+                return;
+            }
+            if (!confirm("Deseja realmente desfazer a última alteração realizada?")) return;
+
+            db.ref('/').set(lastActionSnapshot).then(() => {
+                showToast("Ação desfeita com sucesso! Estado anterior restaurado.");
+                lastActionSnapshot = null;
+                const btn = document.getElementById('undoGlobalBtn');
+                if (btn) btn.style.display = 'none';
+            });
+        }
+
+        // Função utilitária para alternar sinal +/- no mobile
+        function toggleSign(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            let val = input.value.trim().replace(',', '.');
+            if (val === '') {
+                input.value = '-';
+            } else if (val.startsWith('-')) {
+                input.value = val.substring(1);
+            } else {
+                input.value = '-' + val;
+            }
+        }
+
         function getTodayDateString() {
             const d = new Date();
             const year = d.getFullYear();
@@ -796,9 +848,12 @@
             const role = roleInput.value;
             if (!name) return;
 
-            db.ref('players').push({ name, role }).then(() => {
-                nameInput.value = '';
-                showToast(`Operador ${name} registrado!`);
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                db.ref('players').push({ name, role }).then(() => {
+                    nameInput.value = '';
+                    showToast(`Operador ${name} registrado!`);
+                });
             });
         }
 
@@ -825,9 +880,13 @@
         function savePlayerRole() {
             if (!isAdmin || !currentPlayerId) return;
             const newRole = document.getElementById('editPlayerRoleSelect').value;
-            db.ref(`players/${currentPlayerId}/role`).set(newRole).then(() => {
-                closeModal('editRoleModal');
-                showToast("Função tática atualizada com sucesso!");
+            
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                db.ref(`players/${currentPlayerId}/role`).set(newRole).then(() => {
+                    closeModal('editRoleModal');
+                    showToast("Função tática atualizada com sucesso!");
+                });
             });
         }
 
@@ -884,13 +943,16 @@
             const matches = parseInt(document.getElementById('rMatches').value);
             const wins = parseInt(document.getElementById('rWins').value);
 
-            db.ref(`players/${currentPlayerId}/games`).push({
-                kills, assists, damage, matches, wins,
-                seasonId: appState.globalSeason,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            }).then(() => {
-                document.getElementById('addRoundForm').reset();
-                showToast("Rodada registrada com sucesso!");
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                db.ref(`players/${currentPlayerId}/games`).push({
+                    kills, assists, damage, matches, wins,
+                    seasonId: appState.globalSeason,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).then(() => {
+                    document.getElementById('addRoundForm').reset();
+                    showToast("Rodada registrada com sucesso! (Use 'Desfazer' se errou)");
+                });
             });
         }
 
@@ -1018,22 +1080,29 @@
             if (!isAdmin) return;
             const val = parseInt(document.getElementById('newGoalInput').value);
             if (val > 0) {
-                db.ref('settings/squadGoal').set(val);
-                document.getElementById('newGoalInput').value = '';
-                showToast("Meta do Squad atualizada!");
+                db.ref('/').once('value').then(snap => {
+                    saveActionForUndo(snap.val());
+                    db.ref('settings/squadGoal').set(val).then(() => {
+                        document.getElementById('newGoalInput').value = '';
+                        showToast("Meta do Squad atualizada!");
+                    });
+                });
             }
         }
 
-        /* Funções AP NEO com suporte a números negativos */
+        // Funções AP NEO com suporte a números negativos e botão +/-
         function setInitialProfit(e) {
             e.preventDefault();
             if (!isAdmin) return;
             const valStr = document.getElementById('apInputLucroInicial').value.replace(',', '.');
             const inicial = parseFloat(valStr);
 
-            db.ref('apData/lucroInicial').set(inicial).then(() => {
-                showToast("Lucro Inicial definido com sucesso!");
-                document.getElementById('apInputLucroInicial').value = '';
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                db.ref('apData/lucroInicial').set(inicial).then(() => {
+                    showToast("Lucro Inicial definido com sucesso!");
+                    document.getElementById('apInputLucroInicial').value = '';
+                });
             });
         }
 
@@ -1043,9 +1112,12 @@
             const valStr = document.getElementById('apInputBonus').value.replace(',', '.');
             const bonus = parseFloat(valStr);
 
-            db.ref('apData/bonusAP').set(bonus).then(() => {
-                showToast("Bônus do AP atualizado com sucesso!");
-                document.getElementById('apInputBonus').value = '';
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                db.ref('apData/bonusAP').set(bonus).then(() => {
+                    showToast("Bônus do AP atualizado com sucesso!");
+                    document.getElementById('apInputBonus').value = '';
+                });
             });
         }
 
@@ -1063,9 +1135,12 @@
             const atualDecorrente = appState.apData.lucroDecorrente || 0;
             const novoDecorrente = atualDecorrente + valorPartida;
 
-            db.ref('apData/lucroDecorrente').set(novoDecorrente).then(() => {
-                showToast(`Partida registrada! Decorrente: R$ ${novoDecorrente.toFixed(2)}`);
-                document.getElementById('apInputLucroPartida').value = '';
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                db.ref('apData/lucroDecorrente').set(novoDecorrente).then(() => {
+                    showToast(`Partida registrada! Decorrente: R$ ${novoDecorrente.toFixed(2)}`);
+                    document.getElementById('apInputLucroPartida').value = '';
+                });
             });
         }
 
@@ -1079,15 +1154,18 @@
             const totalFinal = inicial + bonus + decorrente;
             const currentDate = appState.apData.currentDate || getTodayDateString();
 
-            let updates = {};
-            updates[`apData/calendar/${currentDate}`] = totalFinal;
-            updates[`apData/lastClosedState`] = { inicial, bonus, decorrente, totalFinal, date: currentDate };
-            updates[`apData/lucroInicial`] = 0;
-            updates[`apData/bonusAP`] = 0;
-            updates[`apData/lucroDecorrente`] = 0;
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                let updates = {};
+                updates[`apData/calendar/${currentDate}`] = totalFinal;
+                updates[`apData/lastClosedState`] = { inicial, bonus, decorrente, totalFinal, date: currentDate };
+                updates[`apData/lucroInicial`] = 0;
+                updates[`apData/bonusAP`] = 0;
+                updates[`apData/lucroDecorrente`] = 0;
 
-            db.ref('/').update(updates).then(() => {
-                showToast(`Lucro final de R$ ${totalFinal.toFixed(2)} salvo no calendário!`);
+                db.ref('/').update(updates).then(() => {
+                    showToast(`Lucro final de R$ ${totalFinal.toFixed(2)} salvo no calendário!`);
+                });
             });
         }
 
@@ -1101,15 +1179,18 @@
 
             if (!confirm(`Deseja desfazer o fechamento do dia ${lastState.date} (R$ ${lastState.totalFinal.toFixed(2)}) e restaurar os valores?`)) return;
 
-            let updates = {};
-            updates[`apData/calendar/${lastState.date}`] = null;
-            updates[`apData/lucroInicial`] = lastState.inicial;
-            updates[`apData/bonusAP`] = lastState.bonus;
-            updates[`apData/lucroDecorrente`] = lastState.lucroDecorrente;
-            updates[`apData/lastClosedState`] = null;
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                let updates = {};
+                updates[`apData/calendar/${lastState.date}`] = null;
+                updates[`apData/lucroInicial`] = lastState.inicial;
+                updates[`apData/bonusAP`] = lastState.bonus;
+                updates[`apData/lucroDecorrente`] = lastState.lucroDecorrente;
+                updates[`apData/lastClosedState`] = null;
 
-            db.ref('/').update(updates).then(() => {
-                showToast("Fechamento desfeito com sucesso! Valores restaurados.");
+                db.ref('/').update(updates).then(() => {
+                    showToast("Fechamento desfeito com sucesso! Valores restaurados.");
+                });
             });
         }
 
@@ -1117,9 +1198,13 @@
             if (!isAdmin) return;
             const val = parseFloat(document.getElementById('apNewGoalInput').value);
             if (val > 0) {
-                db.ref('apData/metaLucro').set(val);
-                document.getElementById('apNewGoalInput').value = '';
-                showToast("Meta de Lucro AP atualizada!");
+                db.ref('/').once('value').then(snap => {
+                    saveActionForUndo(snap.val());
+                    db.ref('apData/metaLucro').set(val).then(() => {
+                        document.getElementById('apNewGoalInput').value = '';
+                        showToast("Meta de Lucro AP atualizada!");
+                    });
+                });
             }
         }
 
@@ -1133,13 +1218,16 @@
 
             if (!playerId) return;
 
-            db.ref(`apData/records/${playerId}`).push({
-                matches, wins, kills, timestamp: firebase.database.ServerValue.TIMESTAMP
-            }).then(() => {
-                showToast("Registro AP salvo com sucesso!");
-                document.getElementById('apMatches').value = '';
-                document.getElementById('apWins').value = '';
-                document.getElementById('apKills').value = '';
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                db.ref(`apData/records/${playerId}`).push({
+                    matches, wins, kills, timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).then(() => {
+                    showToast("Registro AP salvo com sucesso!");
+                    document.getElementById('apMatches').value = '';
+                    document.getElementById('apWins').value = '';
+                    document.getElementById('apKills').value = '';
+                });
             });
         }
 
@@ -1197,8 +1285,11 @@
         function deleteCalendarEntry(date) {
             if (!isAdmin) return;
             if (confirm(`Deseja excluir o registro do dia ${date} do calendário?`)) {
-                db.ref(`apData/calendar/${date}`).remove().then(() => {
-                    showToast(`Registro de ${date} removido do calendário.`);
+                db.ref('/').once('value').then(snap => {
+                    saveActionForUndo(snap.val());
+                    db.ref(`apData/calendar/${date}`).remove().then(() => {
+                        showToast(`Registro de ${date} removido do calendário.`);
+                    });
                 });
             }
         }
@@ -1257,13 +1348,17 @@
             const name = document.getElementById('newSeasonName').value.trim();
             if (!name) return;
             const newSeasons = [...appState.seasons, name];
-            db.ref().update({
-                'settings/seasons': newSeasons,
-                'settings/currentSeason': name
-            }).then(() => {
-                closeModal('seasonModal');
-                document.getElementById('newSeasonName').value = '';
-                showToast(`Temporada ${name} criada!`);
+            
+            db.ref('/').once('value').then(snap => {
+                saveActionForUndo(snap.val());
+                db.ref().update({
+                    'settings/seasons': newSeasons,
+                    'settings/currentSeason': name
+                }).then(() => {
+                    closeModal('seasonModal');
+                    document.getElementById('newSeasonName').value = '';
+                    showToast(`Temporada ${name} criada!`);
+                });
             });
         }
 
@@ -1318,8 +1413,11 @@
                 try {
                     const json = JSON.parse(event.target.result);
                     if(json.players || json.settings) {
-                        db.ref('/').set(json).then(() => {
-                            showToast("Banco de dados restaurado com sucesso!");
+                        db.ref('/').once('value').then(snap => {
+                            saveActionForUndo(snap.val());
+                            db.ref('/').set(json).then(() => {
+                                showToast("Banco de dados restaurado com sucesso!");
+                            });
                         });
                     } else { alert("Arquivo JSON inválido."); }
                 } catch (err) { alert("Erro ao ler o arquivo JSON."); }
@@ -1335,13 +1433,16 @@
                 if(check1) {
                     const check2 = confirm("SEGUNDA CONFIRMAÇÃO: Tem certeza absoluta?");
                     if(check2) {
-                        db.ref('/').remove().then(() => {
-                            db.ref('settings').set({ currentSeason: "Season 1", seasons: ["Season 1"], squadGoal: 1000 });
-                            db.ref('apData').set({ currentDate: getTodayDateString(), lucroInicial: 0, bonusAP: 0, lucroDecorrente: 0, metaLucro: 500, calendar: {}, records: {}, lastClosedState: null });
-                            closeModal('resetModal');
-                            showToast("Sistema completamente resetado.");
-                            currentPlayerId = "";
-                            document.getElementById('playerDashboard').classList.add('hidden');
+                        db.ref('/').once('value').then(snap => {
+                            saveActionForUndo(snap.val());
+                            db.ref('/').remove().then(() => {
+                                db.ref('settings').set({ currentSeason: "Season 1", seasons: ["Season 1"], squadGoal: 1000 });
+                                db.ref('apData').set({ currentDate: getTodayDateString(), lucroInicial: 0, bonusAP: 0, lucroDecorrente: 0, metaLucro: 500, calendar: {}, records: {}, lastClosedState: null });
+                                closeModal('resetModal');
+                                showToast("Sistema completamente resetado.");
+                                currentPlayerId = "";
+                                document.getElementById('playerDashboard').classList.add('hidden');
+                            });
                         });
                     }
                 }
