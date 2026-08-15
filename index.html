@@ -28,7 +28,7 @@
             --purple-dark: #2a0b4d;
             --purple-neon: #7b2cbf;
             --purple-vibrant: #9d4edd;
-            --purple-lavender: #e0ccff; /* Contraste WCAG AA aprimorado */
+            --purple-lavender: #e0ccff;
             --text-main: #ffffff;
             --text-sec: #e0e0e0;
             --border-glow: rgba(123, 44, 191, 0.45);
@@ -223,7 +223,6 @@
         }
         .modal-content { max-width: 400px; width: 100%; text-align: center; border: 1px solid var(--purple-neon); }
 
-        /* Loading Screen */
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #05010a; z-index: 99999; display: flex; flex-direction: column;
@@ -241,7 +240,6 @@
 
         .hidden { display: none !important; }
 
-        /* Print / PDF Export Styles */
         @media print {
             body { background: white; color: black; }
             header, .nav-tabs, .header-actions, aside, .admin-only, #toast-container, .modal { display: none !important; }
@@ -286,7 +284,6 @@
                 <label for="seasonSelector" style="font-size: 0.8rem; color: var(--purple-lavender); font-weight: 600; margin-bottom: 0;">Temporada:</label>
                 <select id="seasonSelector" class="btn-small" style="width: auto; margin-right: 10px;" onchange="changeLocalSeason()"></select>
 
-                <!-- Botão Global de Desfazer -->
                 <button class="btn btn-small btn-warning admin-only" id="undoGlobalBtn" onclick="undoGlobalAction()" title="Desfazer última alteração realizada" style="display:none;">↩️ Desfazer Ação</button>
 
                 <button class="btn btn-small admin-only" onclick="openModal('seasonModal')">Nova Temp.</button>
@@ -360,7 +357,6 @@
                         </div>
                     </div>
 
-                    <!-- Novo Módulo: Registro de Scrims / Partidas Oficiais -->
                     <div class="glass-panel admin-only">
                         <h3 class="neon-title" style="font-size: 1.1rem; margin-bottom: 12px;">Registro de Scrim</h3>
                         <form onsubmit="addScrimRecord(event)">
@@ -518,7 +514,6 @@
                         <div class="admin-only">
                             <hr style="border-color: var(--purple-dark); margin: 14px 0;">
                             
-                            <!-- 1. Definir Lucro Inicial -->
                             <form onsubmit="setInitialProfit(event)" style="margin-bottom: 12px;">
                                 <div class="input-group">
                                     <label for="apInputLucroInicial">1. Definir Lucro Inicial</label>
@@ -530,7 +525,6 @@
                                 <button type="submit" class="btn" style="width: 100%;">Definir Inicial</button>
                             </form>
 
-                            <!-- 2. Definir Bônus AP -->
                             <form onsubmit="setBonusAP(event)" style="margin-bottom: 12px;">
                                 <div class="input-group">
                                     <label for="apInputBonus">2. Definir Bônus do AP</label>
@@ -542,7 +536,6 @@
                                 <button type="submit" class="btn" style="width: 100%;">Atualizar Bônus AP</button>
                             </form>
 
-                            <!-- 3. Lucro Decorrente por Partida -->
                             <form onsubmit="addCurrentProfit(event)" style="margin-bottom: 12px;">
                                 <div class="input-group">
                                     <label for="apInputLucroPartida">3. Lucro/Prejuízo da Partida AP</label>
@@ -554,10 +547,8 @@
                                 <button type="submit" class="btn btn-success" style="width: 100%;">Adicionar Partida</button>
                             </form>
 
-                            <!-- 4. Fechar Lucro Final do Dia -->
                             <button class="btn btn-danger" style="width: 100%; margin-bottom: 8px;" onclick="finalizeDayProfit(true)">Fechar Lucro Final do Dia</button>
                             
-                            <!-- 5. Desfazer Último Fechamento -->
                             <button class="btn btn-small btn-danger" style="width: 100%; background: linear-gradient(45deg, #7b2cbf, #4a0048); border-color: var(--purple-vibrant);" onclick="undoFinalizeDay()">🔄 Desfazer Último Fechamento</button>
                         </div>
                     </div>
@@ -582,7 +573,6 @@
                 </aside>
 
                 <main>
-                    <!-- Calendário de Lucro -->
                     <div class="glass-panel" style="margin-bottom: 24px;">
                         <h3 class="neon-title" style="font-size: 1.1rem; margin-bottom: 14px;">📅 Calendário de Lucros (Histórico)</h3>
                         <div class="table-responsive">
@@ -664,7 +654,6 @@
 
     <div id="toast-container"></div>
 
-    <!-- Modais (Com suporte a Acessibilidade e Fechamento por ESC) -->
     <div id="seasonModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalSeasonTitle">
         <div class="glass-panel modal-content">
             <h3 id="modalSeasonTitle" class="neon-title" style="margin-bottom: 15px;">Nova Temporada</h3>
@@ -795,8 +784,6 @@
         let sortState = { column: 'kd', desc: true };
         let isAdmin = false;
         let currentUserEmail = "";
-
-        // Gerenciamento de Estado para Undo Global
         let lastActionSnapshot = null;
 
         function saveActionForUndo(snapshotData) {
@@ -823,14 +810,12 @@
             });
         }
 
-        // Sanitização XSS
         function sanitizeHTML(str) {
             const temp = document.createElement('div');
             temp.textContent = str;
             return temp.innerHTML;
         }
 
-        // Log de Auditoria
         function logAudit(actionText) {
             const auditEntry = {
                 action: actionText,
@@ -840,7 +825,6 @@
             db.ref('auditLogs').push(auditEntry).catch(() => {});
         }
 
-        // Validação Numérica Robusta
         function validateNumber(val, min = 0, isInt = true) {
             const num = isInt ? parseInt(val) : parseFloat(val);
             if (isNaN(num) || num < min) return false;
@@ -889,7 +873,6 @@
             }
         }
 
-        // Firebase Auth Admin Login
         function toggleAdmin() {
             if (isAdmin) {
                 auth.signOut().then(() => {
@@ -934,7 +917,6 @@
         }
 
         function initApp() {
-            // Monitorar estado de autenticação Firebase Auth
             auth.onAuthStateChanged((user) => {
                 if (user) {
                     isAdmin = true;
@@ -971,7 +953,6 @@
                 checkNewGamesAndToast();
                 renderUI();
 
-                // Remover loading overlay
                 const loader = document.getElementById('loading-overlay');
                 if (loader) {
                     loader.style.opacity = '0';
@@ -1021,7 +1002,6 @@
 
             Object.keys(appState.players).forEach(id => {
                 const p = appState.players[id];
-                const safeName = sanitizeHTML(p.name);
                 
                 const opt1 = document.createElement('option');
                 opt1.value = id;
@@ -1106,7 +1086,7 @@
             const seasonGames = Object.entries(playerGames)
                 .filter(([_, g]) => g.seasonId === appState.viewingSeason)
                 .map(([id, g]) => ({ id, ...g }))
-                .sort((a, b) => a.timestamp - b.timestamp);
+                .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
             seasonGames.forEach(g => {
                 stats.kills += (g.kills || 0);
@@ -1308,7 +1288,6 @@
             document.getElementById('goalCurrentKills').textContent = `${totalKills} Kills`;
             document.getElementById('goalTargetKills').textContent = `Meta: ${target}`;
 
-            // Acionar Confetti ao atingir 100% da meta de kills
             if (totalKills >= target && totalKills > 0 && window.confetti && !window.squadGoalCelebrated) {
                 window.squadGoalCelebrated = true;
                 confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
@@ -1331,7 +1310,6 @@
             }
         }
 
-        // Registro de Scrim / Partida Oficial
         function addScrimRecord(e) {
             e.preventDefault();
             if (!isAdmin) return;
@@ -1351,7 +1329,6 @@
             });
         }
 
-        // Funções AP NEO
         function setInitialProfit(e) {
             e.preventDefault();
             if (!isAdmin) return;
@@ -1450,7 +1427,7 @@
                 updates[`apData/calendar/${lastState.date}`] = null;
                 updates[`apData/lucroInicial`] = lastState.inicial;
                 updates[`apData/bonusAP`] = lastState.bonus;
-                updates[`apData/lucroDecorrente`] = lastState.decorrente; // Corrigido bug de propriedade errada
+                updates[`apData/lucroDecorrente`] = lastState.decorrente;
                 updates[`apData/lastClosedState`] = null;
 
                 db.ref('/').update(updates).then(() => {
@@ -1522,7 +1499,6 @@
             document.getElementById('apGoalCurrent').textContent = `R$ ${totalAtual.toFixed(0)}`;
             document.getElementById('apGoalTarget').textContent = `Meta: R$ ${meta}`;
 
-            // Conquista de meta AP
             if (totalAtual >= meta && totalAtual > 0 && window.confetti && !window.apGoalCelebrated) {
                 window.apGoalCelebrated = true;
                 confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
@@ -1766,7 +1742,6 @@
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         
-        // Fechar modais ao pressionar ESC
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
